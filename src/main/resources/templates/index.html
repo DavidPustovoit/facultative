@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="uk" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Факультатив</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        .section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        select, input, button { margin: 5px 0; padding: 8px; width: 100%; box-sizing: border-box; }
+        button { background-color: #5cb85c; color: white; border: none; cursor: pointer; border-radius: 4px; }
+        button:hover { background-color: #4cae4c; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #eee; margin: 5px 0; padding: 10px; border-radius: 4px; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .logout-btn { background-color: #d9534f; width: auto; padding: 8px 15px; }
+        .logout-btn:hover { background-color: #c9302c; }
+        .grid-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .student-row { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #eee; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header-bar">
+        <div>
+            Ви увійшли як: <strong th:text="${currentUsername}"></strong> |
+            Роль:
+            <strong sec:authorize="hasRole('STUDENT')">Студент</strong>
+            <strong sec:authorize="hasRole('TEACHER')">Викладач</strong>
+        </div>
+        <form th:action="@{/logout}" method="post" style="margin: 0;">
+            <button type="submit" class="logout-btn">Вийти</button>
+        </form>
+    </div>
+
+    <h1>Система Факультатив</h1>
+
+    <div class="section" sec:authorize="hasRole('STUDENT')">
+        <h2>Реєстрація на курс</h2>
+        <form action="/enroll" method="post">
+            <label>Оберіть бажаний навчальний курс</label>
+            <select name="courseId">
+                <option th:each="course : ${courses}" th:value="${course.id}" th:text="${course.name} + ' — Викладач: ' + ${course.teacher.name}"></option>
+            </select>
+            <button type="submit">Записатися на курс</button>
+        </form>
+    </div>
+
+    <div sec:authorize="hasRole('TEACHER')">
+        <div class="section">
+            <h2>Виставлення оцінок за факультативами</h2>
+            <div th:each="course : ${teacherCourses}" style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #ccc; border-radius: 6px;">
+                <h3 th:text="${course.name}" style="margin-top: 0; color: #333; border-bottom: 2px solid #5cb85c; padding-bottom: 5px;"></h3>
+                <div th:if="${not #lists.isEmpty(course.registeredStudents)}">
+                    <div th:each="student : ${course.registeredStudents}" class="student-row">
+                        <span th:text="${student.name}" style="font-weight: bold;"></span>
+                        <form action="/grade" method="post" style="display: flex; gap: 10px; margin: 0; width: auto; align-items: center;">
+                            <input type="hidden" name="courseId" th:value="${course.id}">
+                            <input type="hidden" name="studentId" th:value="${student.id}">
+                            <input type="number" name="grade" min="1" max="100" placeholder="Бал" required style="width: 70px; padding: 5px; margin: 0;">
+                            <button type="submit" style="background-color: #5cb85c; padding: 6px 12px; width: auto; margin: 0;">Підтвердити</button>
+                        </form>
+                    </div>
+                </div>
+                <p th:if="${#lists.isEmpty(course.registeredStudents)}" style="color: #777; margin: 0;">На цей факультатив немає записаних студентів</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Панель адміністрування факультативів</h2>
+            <div class="grid-forms">
+                <form action="/admin/teacher" method="post">
+                    <label>Додати викладача</label>
+                    <input type="text" name="name" placeholder="ПІБ викладача" required>
+                    <input type="text" name="username" placeholder="Системний логін" required>
+                    <button type="submit">Зберегти викладача</button>
+                </form>
+                <form action="/admin/student" method="post">
+                    <label>Додати нового студента</label>
+                    <input type="text" name="name" placeholder="Ім'я студента" required>
+                    <input type="text" name="username" placeholder="Системний логін" required>
+                    <button type="submit">Зберегти студента</button>
+                </form>
+            </div>
+            <form action="/admin/course" method="post" style="margin-top: 15px;">
+                <label>Назва нового курсу</label>
+                <input type="text" name="name" placeholder="Наприклад, Алгоритми" required>
+                <label>Закріпити викладача за курсом</label>
+                <select name="teacherId">
+                    <option th:each="teacher : ${teachers}" th:value="${teacher.id}" th:text="${teacher.name}"></option>
+                </select>
+                <button type="submit">Створити курс</button>
+            </form>
+            <form action="/admin/promote" method="post" style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                <label>Надати студенту статус викладача</label>
+                <select name="studentId">
+                    <option th:each="student : ${students}" th:value="${student.id}" th:text="${student.name}"></option>
+                </select>
+                <button type="submit" style="background-color: #f0ad4e;">Змінити роль на Викладач</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Загальний архів оцінок</h2>
+        <ul>
+            <li th:each="record : ${archive}"
+                th:text="${record.student.name} + ' | ' + ${record.course.name} + ' | Оцінка: ' + ${record.grade}">
+            </li>
+        </ul>
+    </div>
+</div>
+</body>
+</html>

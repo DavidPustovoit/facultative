@@ -1,0 +1,9 @@
+package facultative.repository;
+
+import facultative.entity.ArchiveRecord;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ArchiveRecordRepository extends JpaRepository<ArchiveRecord, Long> {
+}
