@@ -18,6 +18,36 @@
         .logout-btn:hover { background-color: #c9302c; }
         .grid-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .student-row { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #eee; }
+
+        /* Стилі для модального вікна */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Напівпрозорий фон */
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 350px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .confirm-btn { background-color: #5cb85c; width: 48%; }
+        .cancel-btn { background-color: #d9534f; width: 48%; }
+        .cancel-btn:hover { background-color: #c9302c; }
     </style>
 </head>
 <body>
@@ -36,14 +66,31 @@
 
     <h1>Система Факультатив</h1>
 
+    <!-- Новий блок: Мої курси (тільки для студентів) -->
+    <div class="section" sec:authorize="hasRole('STUDENT')">
+        <h2>Мої курси</h2>
+        <!-- Шукаємо поточного студента у списку всіх студентів -->
+        <div th:each="student : ${students}" th:if="${student.username == currentUsername}">
+            <!-- Якщо у студента є курси -->
+            <ul th:if="${not #lists.isEmpty(student.courses)}">
+                <li th:each="course : ${student.courses}">
+                    <strong th:text="${course.name}"></strong>
+                    <span th:text="' — Викладач: ' + ${course.teacher.name}"></span>
+                </li>
+            </ul>
+            <!-- Якщо списку курсів немає -->
+            <p th:if="${#lists.isEmpty(student.courses)}" style="color: #777; margin: 0;">Ви ще не записані на жодний курс.</p>
+        </div>
+    </div>
+
     <div class="section" sec:authorize="hasRole('STUDENT')">
         <h2>Реєстрація на курс</h2>
-        <form action="/enroll" method="post">
+        <form action="/enroll" method="post" id="enrollForm">
             <label>Оберіть бажаний навчальний курс</label>
             <select name="courseId">
                 <option th:each="course : ${courses}" th:value="${course.id}" th:text="${course.name} + ' — Викладач: ' + ${course.teacher.name}"></option>
             </select>
-            <button type="submit">Записатися на курс</button>
+            <button type="button" id="enrollSubmitBtn">Записатися на курс</button>
         </form>
     </div>
 
@@ -111,5 +158,52 @@
         </ul>
     </div>
 </div>
+
+<!-- Модальне вікно підтвердження запису на курс -->
+<div id="enrollModal" class="modal">
+    <div class="modal-content">
+        <h3>Підтвердження запису на курс</h3>
+        <p>Ви впевнені, що хочете записатися на цей факультатив?</p>
+        <div class="modal-buttons">
+            <button id="confirmBtn" class="confirm-btn">Підтвердити</button>
+            <button id="cancelBtn" class="cancel-btn">Скасувати</button>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript для модального вікна -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var modal = document.getElementById("enrollModal");
+        var enrollBtn = document.getElementById("enrollSubmitBtn");
+        var confirmBtn = document.getElementById("confirmBtn");
+        var cancelBtn = document.getElementById("cancelBtn");
+        var enrollForm = document.getElementById("enrollForm");
+
+        if (enrollBtn) {
+            enrollBtn.onclick = function() {
+                modal.style.display = "block";
+            }
+        }
+
+        if (cancelBtn) {
+            cancelBtn.onclick = function() {
+                modal.style.display = "none";
+            }
+        }
+
+        if (confirmBtn) {
+            confirmBtn.onclick = function() {
+                enrollForm.submit();
+            }
+        }
+
+        window.onclick = function(event) {
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        }
+    });
+</script>
 </body>
 </html>
