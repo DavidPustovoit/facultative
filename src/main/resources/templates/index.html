@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Факультатив</title>
     <style>
+        /* ТВОЙ ИЗНАЧАЛЬНЫЙ СТИЛЬ */
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #333; }
@@ -20,42 +21,27 @@
         .student-row { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #eee; }
 
         /* Стилі для модального вікна */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Напівпрозорий фон */
-        }
-        .modal-content {
-            background-color: #fff;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 350px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        .modal-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); }
+        .modal-content { background-color: #fff; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 350px; border-radius: 8px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .modal-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
         .confirm-btn { background-color: #5cb85c; width: 48%; }
         .cancel-btn { background-color: #d9534f; width: 48%; }
         .cancel-btn:hover { background-color: #c9302c; }
+
+        /* СТИЛИ ДЛЯ ВКЛАДОК ПОД ИЗНАЧАЛЬНЫЙ ДИЗАЙН */
+        .tab-menu { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        .tab-btn { background-color: #eee; color: #333; border: 1px solid #ddd; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; width: auto; margin: 0; }
+        .tab-btn:hover { background-color: #e0e0e0; }
+        .tab-btn.active { background-color: #5cb85c; color: white; border-color: #5cb85c; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header-bar">
         <div>
-            Ви увійшли як: <strong th:text="${currentUsername}"></strong> |
-            Роль:
+            Ви увійшли як: <strong th:text="${currentUsername}"></strong> | Роль:
             <strong sec:authorize="hasRole('STUDENT')">Студент</strong>
             <strong sec:authorize="hasRole('TEACHER')">Викладач</strong>
         </div>
@@ -66,35 +52,45 @@
 
     <h1>Система Факультатив</h1>
 
-    <!-- Новий блок: Мої курси (тільки для студентів) -->
-    <div class="section" sec:authorize="hasRole('STUDENT')">
-        <h2>Мої курси</h2>
-        <!-- Шукаємо поточного студента у списку всіх студентів -->
-        <div th:each="student : ${students}" th:if="${student.username == currentUsername}">
-            <!-- Якщо у студента є курси -->
-            <ul th:if="${not #lists.isEmpty(student.courses)}">
-                <li th:each="course : ${student.courses}">
-                    <strong th:text="${course.name}"></strong>
-                    <span th:text="' — Викладач: ' + ${course.teacher.name}"></span>
-                </li>
-            </ul>
-            <!-- Якщо списку курсів немає -->
-            <p th:if="${#lists.isEmpty(student.courses)}" style="color: #777; margin: 0;">Ви ще не записані на жодний курс.</p>
+    <div class="tab-menu">
+        <button sec:authorize="hasRole('STUDENT')" class="tab-btn active" data-tab="student-courses-tab">Мої курси</button>
+        <button sec:authorize="hasRole('STUDENT')" class="tab-btn" data-tab="student-enroll-tab">Реєстрація на курс</button>
+
+        <button sec:authorize="hasRole('TEACHER')" class="tab-btn active" data-tab="teacher-grading-tab">Виставлення оцінок</button>
+        <button sec:authorize="hasRole('TEACHER')" class="tab-btn" data-tab="teacher-admin-tab">Панель адміністрування</button>
+
+        <button class="tab-btn" data-tab="global-archive-tab">Загальний архів оцінок</button>
+    </div>
+
+    <div id="student-courses-tab" class="tab-content" sec:authorize="hasRole('STUDENT')">
+        <div class="section">
+            <h2>Мої курси</h2>
+            <div th:each="student : ${students}" th:if="${student.username == currentUsername}">
+                <ul th:if="${not #lists.isEmpty(student.courses)}">
+                    <li th:each="course : ${student.courses}">
+                        <strong th:text="${course.name}"></strong>
+                        <span th:text="' — Викладач: ' + ${course.teacher.name}"></span>
+                    </li>
+                </ul>
+                <p th:if="${#lists.isEmpty(student.courses)}" style="color: #777; margin: 0;">Ви ще не записані на жодний курс.</p>
+            </div>
         </div>
     </div>
 
-    <div class="section" sec:authorize="hasRole('STUDENT')">
-        <h2>Реєстрація на курс</h2>
-        <form action="/enroll" method="post" id="enrollForm">
-            <label>Оберіть бажаний навчальний курс</label>
-            <select name="courseId">
-                <option th:each="course : ${courses}" th:value="${course.id}" th:text="${course.name} + ' — Викладач: ' + ${course.teacher.name}"></option>
-            </select>
-            <button type="button" id="enrollSubmitBtn">Записатися на курс</button>
-        </form>
+    <div id="student-enroll-tab" class="tab-content" sec:authorize="hasRole('STUDENT')">
+        <div class="section">
+            <h2>Реєстрація на курс</h2>
+            <form action="/enroll" method="post" id="enrollForm">
+                <label>Оберіть бажаний навчальний курс</label>
+                <select name="courseId">
+                    <option th:each="course : ${courses}" th:value="${course.id}" th:text="${course.name} + ' — Викладач: ' + ${course.teacher.name}"></option>
+                </select>
+                <button type="button" id="enrollSubmitBtn">Записатися на курс</button>
+            </form>
+        </div>
     </div>
 
-    <div sec:authorize="hasRole('TEACHER')">
+    <div id="teacher-grading-tab" class="tab-content" sec:authorize="hasRole('TEACHER')">
         <div class="section">
             <h2>Виставлення оцінок за факультативами</h2>
             <div th:each="course : ${teacherCourses}" style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #ccc; border-radius: 6px;">
@@ -113,7 +109,9 @@
                 <p th:if="${#lists.isEmpty(course.registeredStudents)}" style="color: #777; margin: 0;">На цей факультатив немає записаних студентів</p>
             </div>
         </div>
+    </div>
 
+    <div id="teacher-admin-tab" class="tab-content" sec:authorize="hasRole('TEACHER')">
         <div class="section">
             <h2>Панель адміністрування факультативів</h2>
             <div class="grid-forms">
@@ -130,6 +128,7 @@
                     <button type="submit">Зберегти студента</button>
                 </form>
             </div>
+
             <form action="/admin/course" method="post" style="margin-top: 15px;">
                 <label>Назва нового курсу</label>
                 <input type="text" name="name" placeholder="Наприклад, Алгоритми" required>
@@ -139,6 +138,7 @@
                 </select>
                 <button type="submit">Створити курс</button>
             </form>
+
             <form action="/admin/promote" method="post" style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
                 <label>Надати студенту статус викладача</label>
                 <select name="studentId">
@@ -149,17 +149,17 @@
         </div>
     </div>
 
-    <div class="section">
-        <h2>Загальний архів оцінок</h2>
-        <ul>
-            <li th:each="record : ${archive}"
-                th:text="${record.student.name} + ' | ' + ${record.course.name} + ' | Оцінка: ' + ${record.grade}">
-            </li>
-        </ul>
+    <div id="global-archive-tab" class="tab-content">
+        <div class="section">
+            <h2>Загальний архів оцінок</h2>
+            <ul>
+                <li th:each="record : ${archive}" th:text="${record.student.name} + ' | ' + ${record.course.name} + ' | Оцінка: ' + ${record.grade}"></li>
+            </ul>
+        </div>
     </div>
+
 </div>
 
-<!-- Модальне вікно підтвердження запису на курс -->
 <div id="enrollModal" class="modal">
     <div class="modal-content">
         <h3>Підтвердження запису на курс</h3>
@@ -171,9 +171,40 @@
     </div>
 </div>
 
-<!-- JavaScript для модального вікна -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        function activateTab(tabId) {
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const targetContent = document.getElementById(tabId);
+            if (targetContent) targetContent.classList.add('active');
+
+            const targetBtn = document.querySelector(`[data-tab="${tabId}"]`);
+            if (targetBtn) targetBtn.classList.add('active');
+        }
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                activateTab(this.getAttribute('data-tab'));
+            });
+        });
+
+        // Открываем первую доступную по роли вкладку по умолчанию
+        const defaultBtn = document.querySelector('.tab-btn');
+        if (defaultBtn) {
+            activateTab(defaultBtn.getAttribute('data-tab'));
+        }
+
+        // ОРИГИНАЛЬНАЯ ЛОГИКА МОДАЛЬНОГО ОКНА
         var modal = document.getElementById("enrollModal");
         var enrollBtn = document.getElementById("enrollSubmitBtn");
         var confirmBtn = document.getElementById("confirmBtn");
